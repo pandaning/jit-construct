@@ -22,7 +22,8 @@
 #define Dst &state
 #define MAX_NESTING 256
 
-int constraction(char *p){
+int constraction(char *p)
+{
 	char *ptr = p;
 	int count = 0;
 	while(*p==*ptr){
@@ -32,10 +33,18 @@ int constraction(char *p){
 	return count;
 }
 
-int reset_zero(char *p){
-    if( *(p+1) == '-' && *(p+2) == ']' )
+int clearloop(char *p)//[-]
+{
+    if(*(p+1) == '-' && *(p+2) == ']')
         return 1;
     return 0;
+}
+
+int copyloop(char *p)//[->+<]
+{
+	if(*(p+1) == '-' && *(p+2) == '>' && *(p+3) == '+' && *(p+4) == '<' && *(p+5) == ']')
+		return 1;
+	return 0;
 }
 
 int main(int argc, char *argv[])
@@ -55,7 +64,7 @@ int main(int argc, char *argv[])
 		switch (*p) {
 		case '>':
 			mult = constraction(p);
-			p+=mult-1;
+			p += mult-1;
 			if(mult==1)
 				|  inc  PTR
 			else
@@ -63,7 +72,7 @@ int main(int argc, char *argv[])
 			break;
 		case '<':
 			mult = constraction(p);
-			p+=mult-1;
+			p += mult-1;
 			if(mult==1)
 				|  dec  PTR
 			else
@@ -71,7 +80,7 @@ int main(int argc, char *argv[])
 			break;
 		case '+':
 			mult = constraction(p);
-			p+=mult-1;
+			p += mult-1;
 			if(mult==1)
 				|  inc  byte [PTR]
 			else
@@ -79,7 +88,7 @@ int main(int argc, char *argv[])
 			break;
 		case '-':
 			mult = constraction(p);
-			p+=mult-1;
+			p += mult-1;
 			if(mult==1)
 				|  dec  byte [PTR]
 			else
@@ -98,10 +107,18 @@ int main(int argc, char *argv[])
 			// Each loop gets two pclabels: at the beginning and end.
 			// We store pclabel offsets in a stack to link the loop
 			// begin and end together.
-			if(reset_zero(p) == 1)
+			if(clearloop(p) == 1)
 			{
 				| mov byte [PTR], 0
 				p+=2;
+				break;
+			}
+			if(copyloop(p) == 1)
+			{
+				| mov dl, byte [PTR]
+				| mov byte [PTR+1], dl
+				| mov byte [PTR], 0
+				p+=5;
 				break;
 			}
 			maxpc += 2;
