@@ -32,6 +32,12 @@ int constraction(char *p){
 	return count;
 }
 
+int reset_zero(char *p){
+    if( *(p+1) == '-' && *(p+2) == ']' )
+        return 1;
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	if (argc < 2) err("Usage: jit-x64 <inputfile>");
@@ -41,7 +47,6 @@ int main(int argc, char *argv[])
 	unsigned int maxpc = 0;
 	int pcstack[MAX_NESTING];
 	int *top = pcstack, *limit = pcstack + MAX_NESTING;
-	int mult;
 	// Function prologue.
 	|  push PTR
 	|  mov  PTR, rdi      // rdi store 1st argument
@@ -49,36 +54,16 @@ int main(int argc, char *argv[])
 	for (char *p = read_file(argv[1]); *p; p++) {
 		switch (*p) {
 		case '>':
-			mult = constraction(p);
-			p+=mult-1;
-			if(mult==1)
-				|  inc  PTR
-			else
-				|  add  PTR, mult
+			|  inc  PTR
 			break;
 		case '<':
-			mult = constraction(p);
-			p+=mult-1;
-			if(mult==1)
-				|  dec  PTR
-			else
-				|  sub  PTR, mult
+			|  dec  PTR
 			break;
 		case '+':
-			mult = constraction(p);
-			p+=mult-1;
-			if(mult==1)
-				|  inc  byte [PTR]
-			else
-				|  add  byte [PTR], mult
+			|  inc  byte [PTR]
 			break;
 		case '-':
-			mult = constraction(p);
-			p+=mult-1;
-			if(mult==1)
-				|  dec  byte [PTR]
-			else
-				|  sub  byte [PTR], mult
+			|  dec  byte [PTR]
 			break;
 		case '.':
 			|  movzx edi, byte [PTR]
@@ -93,6 +78,12 @@ int main(int argc, char *argv[])
 			// Each loop gets two pclabels: at the beginning and end.
 			// We store pclabel offsets in a stack to link the loop
 			// begin and end together.
+			if(reset_zero(p) == 1)
+			{
+				| mov byte [PTR], 0
+				p+=2;
+				break;
+			}
 			maxpc += 2;
 			*top++ = maxpc;
 			dasm_growpc(&state, maxpc);
