@@ -22,6 +22,16 @@
 #define Dst &state
 #define MAX_NESTING 256
 
+int constraction(char *p){
+	char *ptr = p;
+	int count = 0;
+	while(*p==*ptr){
+		ptr++;
+		count++;
+	}
+	return count;
+}
+
 int main(int argc, char *argv[])
 {
 	if (argc < 2) err("Usage: jit-x64 <inputfile>");
@@ -31,7 +41,7 @@ int main(int argc, char *argv[])
 	unsigned int maxpc = 0;
 	int pcstack[MAX_NESTING];
 	int *top = pcstack, *limit = pcstack + MAX_NESTING;
-
+	int mult;
 	// Function prologue.
 	|  push PTR
 	|  mov  PTR, rdi      // rdi store 1st argument
@@ -39,16 +49,36 @@ int main(int argc, char *argv[])
 	for (char *p = read_file(argv[1]); *p; p++) {
 		switch (*p) {
 		case '>':
-			|  inc  PTR
+			mult = constraction(p);
+			p+=mult-1;
+			if(mult==1)
+				|  inc  PTR
+			else
+				|  add  PTR, mult
 			break;
 		case '<':
-			|  dec  PTR
+			mult = constraction(p);
+			p+=mult-1;
+			if(mult==1)
+				|  dec  PTR
+			else
+				|  sub  PTR, mult
 			break;
 		case '+':
-			|  inc  byte [PTR]
+			mult = constraction(p);
+			p+=mult-1;
+			if(mult==1)
+				|  inc  byte [PTR]
+			else
+				|  add  byte [PTR], mult
 			break;
 		case '-':
-			|  dec  byte [PTR]
+			mult = constraction(p);
+			p+=mult-1;
+			if(mult==1)
+				|  dec  byte [PTR]
+			else
+				|  sub  byte [PTR], mult
 			break;
 		case '.':
 			|  movzx edi, byte [PTR]
