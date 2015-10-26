@@ -64,6 +64,21 @@ int copyloop(char *p)//[->>>+<<<]
 	return -1;
 }
 
+void removespace(char *p)
+{
+	int count = 0;
+	while(*p)
+	{
+		if(*(p+count) == ' ')
+		{ 
+			count++;
+		}
+		//if *p is not ' ', move to next *p
+		*p = *(p+count);//if found ' ', replace value
+		p++;
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	if (argc < 2) err("Usage: jit-x64 <inputfile>");
@@ -77,8 +92,8 @@ int main(int argc, char *argv[])
 	// Function prologue.
 	|  push PTR
 	|  mov  PTR, rdi      // rdi store 1st argument
-
-	for (char *p = read_file(argv[1]); *p; p++) {
+	char *p = read_file(argv[1]);
+	for (removespace(p); *p; p++) {
 		switch (*p) {
 		case '>':
 			mult = constraction(p);
@@ -132,14 +147,6 @@ int main(int argc, char *argv[])
 				p+=2;
 				break;
 			}
-			/*if(copyloop(p) == 1)
-			{
-				| mov dl, byte [PTR]
-				| mov byte [PTR+1], dl
-				| mov byte [PTR], 0
-				p+=5;
-				break;
-			}*/
 			if(copy!=-1)
 			{
 				| mov dl, byte [PTR]
