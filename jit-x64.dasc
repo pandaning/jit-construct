@@ -26,7 +26,8 @@ int constraction(char *p)
 {
 	char *ptr = p;
 	int count = 0;
-	while(*p==*ptr){
+	while(*p==*ptr)
+	{
 		ptr++;
 		count++;
 	}
@@ -40,11 +41,27 @@ int clearloop(char *p)//[-]
     return 0;
 }
 
-int copyloop(char *p)//[->+<]
+int copyloop(char *p)//[->>>+<<<]
 {
-	if(*(p+1) == '-' && *(p+2) == '>' && *(p+3) == '+' && *(p+4) == '<' && *(p+5) == ']')
-		return 1;
-	return 0;
+	int offset = 0;//for > <
+	int temp = 0;
+	if(*(p+1) == '-')//[-
+	{
+		p+=2;
+		while(*p!=']')
+		{
+			if(*p == '[' || *p == ',' || *p == '.' || *p == '-' || *p == ']') return -1;
+			temp = constraction(p);
+			if(*p == '>') offset += temp;
+			else if(*p == '<') offset -= temp;
+			if(offset != 0)return -1;
+
+			p+=temp;
+			if(*p == '+') return temp;
+			return -1;
+		}
+	}
+	return -1;
 }
 
 int main(int argc, char *argv[])
@@ -53,6 +70,7 @@ int main(int argc, char *argv[])
 	dasm_State *state;
 	initjit(&state, actions);
 	int mult;
+	int copy;
 	unsigned int maxpc = 0;
 	int pcstack[MAX_NESTING];
 	int *top = pcstack, *limit = pcstack + MAX_NESTING;
@@ -107,18 +125,27 @@ int main(int argc, char *argv[])
 			// Each loop gets two pclabels: at the beginning and end.
 			// We store pclabel offsets in a stack to link the loop
 			// begin and end together.
+			copy = copyloop(p);
 			if(clearloop(p) == 1)
 			{
 				| mov byte [PTR], 0
 				p+=2;
 				break;
 			}
-			if(copyloop(p) == 1)
+			/*if(copyloop(p) == 1)
 			{
 				| mov dl, byte [PTR]
 				| mov byte [PTR+1], dl
 				| mov byte [PTR], 0
 				p+=5;
+				break;
+			}*/
+			if(copy!=-1)
+			{
+				| mov dl, byte [PTR]
+				| mov byte [PTR+copy], dl
+				| mov byte [PTR], 0
+				p+=(5+(copy-1)*2);
 				break;
 			}
 			maxpc += 2;
